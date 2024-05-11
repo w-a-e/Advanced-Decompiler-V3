@@ -5,16 +5,8 @@
 --TODO: use letter "u" instead of "v" for upvalues
 --TODO: timeout?
 
-local ENABLED_REMARKS = {
-	NATIVE_REMARK = false,
-	INLINE_REMARK = true
-}
-local READER_FLOAT_PRECISION = 7 -- up to 99
-local SHOW_INSTRUCTION_LINES = true
-local SHOW_OPERATION_NAMES = false
-local SHOW_MISC_OPERATIONS = false
-local LIST_USED_GLOBALS = true
-local RETURN_TIME_TAKEN = false
+--CONSTANTS HERE--
+
 -- TEMPORARY
 local POINT_TYPE_END = 0
 local POINT_TYPE_ELSE = 1
