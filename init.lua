@@ -5,7 +5,7 @@
 --TODO: use letter "u" instead of "v" for upvalues
 --TODO: timeout?
 
---CONSTANTS HERE--
+;;CONSTANTS HERE;;
 
 -- TEMPORARY
 local POINT_TYPE_END = 0
