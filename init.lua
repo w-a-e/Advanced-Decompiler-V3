@@ -30,7 +30,7 @@ local function LoadFromUrl(x)
 
 	local loadSuccess, loadResult = pcall(function()
 		local formattedUrl = string.format(BASE_URL, BASE_USER, BASE_BRANCH, x)
-		return game:HttpGet(formattedUrl)
+		return game:HttpGet(formattedUrl, true)
 	end)
 
 	if not loadSuccess then
@@ -249,7 +249,7 @@ local function Decompile(bytecode)
 							if string.find(currOPInfo.type, "sD") then
 								-- works in most cases but still gotta replace this
 								local sD = Luau:INSN_sD(insn)
-								if sD < -1 then
+								if sD < -1 and val ~= 0 then
 									val = val - (0xFF + 1)
 								end
 							elseif currOPInfo.name == "CALL" and val > 0 then
@@ -857,16 +857,16 @@ local function Decompile(bytecode)
 							protoOutput ..= "end" .. string.format(" -- FORGLOOP(%i vars) - iterate + goto #%i", numVars, insnIndex + sD) .. (respectsArrayOrder and " (ipairs)" or "")
 						end
 						opConstructors["FORGPREP_INEXT"] = function()
-							protoOutput ..= string.format("-- FORGPREP_INEXT start - [escape at #%i] -- iterator: ipairs", insnIndex + D)
+							protoOutput ..= `for {modifyRegister(A + 3)}, {modifyRegister(A + 4)} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{insnIndex + D}] (ipairs)`
 						end
 						opConstructors["DEP_FORGLOOP_INEXT"] = function()
-							protoOutput ..= string.format("-- DEP_FORGLOOP_INEXT start - [escape at #%i] -- iterator: ipairs, this is deprecated???", insnIndex + D)
+							protoOutput ..= `for {modifyRegister(A + 3)}, {modifyRegister(A + 4)} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{insnIndex + D}] (ipairs) DEPRECATED`
 						end
 						opConstructors["FORGPREP_NEXT"] = function()
-							protoOutput ..= string.format("-- FORGPREP_NEXT start - [escape at #%i] -- iterator: pairs", insnIndex + D)
+							protoOutput ..= `for {modifyRegister(A + 3)}, {modifyRegister(A + 4)} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{insnIndex + D}] (pairs/next)`
 						end
 						opConstructors["DEP_FORGLOOP_NEXT"] = function()
-							protoOutput ..= string.format("-- DEP_FORGLOOP_NEXT start - [escape at #%i] -- iterator: pairs, this is deprecated???", insnIndex + D)
+							protoOutput ..= `for {modifyRegister(A + 3)}, {modifyRegister(A + 4)} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{insnIndex + D}] (pairs/next) DEPRECATED`
 						end
 						opConstructors["JUMP"] = function()
 							local endPoint = insnIndex + sD
