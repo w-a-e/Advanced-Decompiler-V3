@@ -843,30 +843,99 @@ local function Decompile(bytecode)
 						opConstructors["FORNPREP"] = function() -- prepare numeric loop
 							--TODO: read instructions before fornprep and show their values (and clear them away)
 							-- also remove step if its 1
-							protoOutput ..= `for {modifyRegister(A + 2)} = {modifyRegister(A + 2)}, {modifyRegister(A)}, {modifyRegister(A + 1)} do  -- FORNPREP [escape at #{insnIndex + sD}]`
+							protoOutput ..= `for {modifyRegister(A + 2)} = {modifyRegister(A + 2)}, {modifyRegister(A)}, {modifyRegister(A + 1)} do -- [escape at #{insnIndex + sD}]`
 						end
 						opConstructors["FORNLOOP"] = function()
 							protoOutput ..= "end" .. ` -- FORNLOOP end - iterate + goto #{insnIndex + sD}`
 						end
 						opConstructors["FORGPREP"] = function() -- prepare generic loop
-							protoOutput ..= `for {modifyRegister(A + 3)}, {modifyRegister(A + 4)} in {modifyRegister(A)} do -- [escape at #{insnIndex + D}]`
+							local endInsnIndex = insnIndex + sD + 1
+							local endInsnAuxIndex = endInsnIndex + 1
+							local endInsnAux = proto.insnTable[endInsnAuxIndex]
+
+							local numRegs = bit32.band(endInsnAux, 0xFF)
+
+							local regStr = ""
+							for regIndex = 1, numRegs do
+								regStr = regStr .. modifyRegister(A + 2 + regIndex)
+								if regIndex ~= numRegs then
+									regStr = regStr .. ", "
+								end
+							end
+
+							protoOutput ..= `for {regStr} in {modifyRegister(A)} do -- [escape at #{endInsnIndex}]`
 						end
 						opConstructors["FORGLOOP"] = function()
 							local respectsArrayOrder = toboolean(rshift(aux, 0x1F))
-							local numVars = bit32.band(aux, 0xFF)
-							protoOutput ..= "end" .. string.format(" -- FORGLOOP(%i vars) - iterate + goto #%i", numVars, insnIndex + sD) .. (respectsArrayOrder and " (ipairs)" or "")
+							protoOutput ..= "end" .. string.format(" -- FORGLOOP - iterate + goto #%i", insnIndex + sD) .. (respectsArrayOrder and " (ipairs)" or "")
 						end
 						opConstructors["FORGPREP_INEXT"] = function()
-							protoOutput ..= `for {modifyRegister(A + 3)}, {modifyRegister(A + 4)} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{insnIndex + D}] (ipairs)`
+							local endInsnIndex = insnIndex + sD + 1
+							local endInsnAuxIndex = endInsnIndex + 1
+							local endInsnAux = proto.insnTable[endInsnAuxIndex]
+
+							local numRegs = bit32.band(endInsnAux, 0xFF)
+
+							local regStr = ""
+							for regIndex = 1, numRegs do
+								regStr = regStr .. modifyRegister(A + 2 + regIndex)
+								if regIndex ~= numRegs then
+									regStr = regStr .. ", "
+								end
+							end
+
+							protoOutput ..= `for {regStr} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{endInsnIndex}] (ipairs)`
 						end
 						opConstructors["DEP_FORGLOOP_INEXT"] = function()
-							protoOutput ..= `for {modifyRegister(A + 3)}, {modifyRegister(A + 4)} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{insnIndex + D}] (ipairs) DEPRECATED`
+							local endInsnIndex = insnIndex + sD + 1
+							local endInsnAuxIndex = endInsnIndex + 1
+							local endInsnAux = proto.insnTable[endInsnAuxIndex]
+
+							local numRegs = bit32.band(endInsnAux, 0xFF)
+
+							local regStr = ""
+							for regIndex = 1, numRegs do
+								regStr = regStr .. modifyRegister(A + 2 + regIndex)
+								if regIndex ~= numRegs then
+									regStr = regStr .. ", "
+								end
+							end
+
+							protoOutput ..= `for {regStr} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{endInsnIndex}] (ipairs) DEPRECATED`
 						end
 						opConstructors["FORGPREP_NEXT"] = function()
-							protoOutput ..= `for {modifyRegister(A + 3)}, {modifyRegister(A + 4)} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{insnIndex + D}] (pairs/next)`
+							local endInsnIndex = insnIndex + sD + 1
+							local endInsnAuxIndex = endInsnIndex + 1
+							local endInsnAux = proto.insnTable[endInsnAuxIndex]
+
+							local numRegs = bit32.band(endInsnAux, 0xFF)
+
+							local regStr = ""
+							for regIndex = 1, numRegs do
+								regStr = regStr .. modifyRegister(A + 2 + regIndex)
+								if regIndex ~= numRegs then
+									regStr = regStr .. ", "
+								end
+							end
+
+							protoOutput ..= `for {regStr} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{endInsnIndex}] (pairs/next)`
 						end
 						opConstructors["DEP_FORGLOOP_NEXT"] = function()
-							protoOutput ..= `for {modifyRegister(A + 3)}, {modifyRegister(A + 4)} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{insnIndex + D}] (pairs/next) DEPRECATED`
+							local endInsnIndex = insnIndex + sD + 1
+							local endInsnAuxIndex = endInsnIndex + 1
+							local endInsnAux = proto.insnTable[endInsnAuxIndex]
+
+							local numRegs = bit32.band(endInsnAux, 0xFF)
+
+							local regStr = ""
+							for regIndex = 1, numRegs do
+								regStr = regStr .. modifyRegister(A + 2 + regIndex)
+								if regIndex ~= numRegs then
+									regStr = regStr .. ", "
+								end
+							end
+
+							protoOutput ..= `for {regStr} in {modifyRegister(A)}({modifyRegister(A + 1)}) do -- [escape at #{endInsnIndex}] (pairs/next) DEPRECATED`
 						end
 						opConstructors["JUMP"] = function()
 							local endPoint = insnIndex + sD
@@ -1075,7 +1144,7 @@ local function Decompile(bytecode)
 						opConstructors["CALL"] = function()
 							if C == 0 then -- MULTRET (Results)
 								protoOutput ..= modifyRegister(A - 1)
-							elseif C > 1 then
+							else
 								for j = 1, C - 1 do
 									protoOutput ..= modifyRegister(A + j - 1)
 									if j < C - 1 then protoOutput ..= ", " end
@@ -1090,9 +1159,9 @@ local function Decompile(bytecode)
 							else
 								protoOutput ..= modifyRegister(A) .. "("
 							end
-							if B == 0 then -- MULTRET (Arguments)
+							if (B - 1) == 0 then -- MULTRET (Arguments)
 								protoOutput ..= modifyRegister(A + 1)
-							elseif B > 1 then
+							else
 								if nameCallExpected then
 									for j = 1, B - 2 do
 										protoOutput ..= modifyRegister(A + 1 + j) -- exclude self
@@ -1134,12 +1203,18 @@ local function Decompile(bytecode)
 							protoOutput ..= "}"
 						end
 						opConstructors["SETLIST"] = function()
+							local reg = A
+							local arrayChunkReg = B
 							local count = C
+
+							local arrayIndex = aux
+
 							if count == 0 then -- MULTRET
-								protoOutput ..= string.format("%s[%i] = ...", modifyRegister(A), aux)
-							elseif count > 1 then
+								-- TODO: learn more and fix this
+								protoOutput ..= string.format("%s[%i] = ...", modifyRegister(reg), arrayIndex)
+							else
 								for i = 0, count - 2 do
-									protoOutput ..= string.format("%s[%i] = %s\n", modifyRegister(A), aux + i, modifyRegister(B + i))
+									protoOutput ..= string.format("%s[%i] = %s\n", modifyRegister(reg), arrayIndex + i, modifyRegister(arrayChunkReg + i))
 								end
 							end
 						end
@@ -1300,13 +1375,15 @@ local function Decompile(bytecode)
 						warn(`OP '{opInfo.name}' went unhandled: missing constructor`)
 					end
 
-					for _, v in refData do
-						if v.insnIndex == insnIndex then
-							protoOutput ..= " -- referenced by "
-							for i = 1, #v.refs do
-								protoOutput ..= "#" .. v.refs[i]
-								if i < #v.refs then
-									protoOutput ..= ", "
+					if SHOW_REFERENCES then
+						for _, v in refData do
+							if v.insnIndex == insnIndex then
+								protoOutput ..= " -- referenced by "
+								for i = 1, #v.refs do
+									protoOutput ..= "#" .. v.refs[i]
+									if i < #v.refs then
+										protoOutput ..= ", "
+									end
 								end
 							end
 						end
