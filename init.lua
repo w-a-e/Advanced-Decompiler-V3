@@ -3,7 +3,6 @@
 --TODO: add --optimize hotcomment support if possible even?
 --TODO: stop listing nested upvalues and use them directly
 --TODO: use letter "u" instead of "v" for upvalues
---TODO: timeout?
 
 ;;CONSTANTS HERE;;
 
@@ -63,7 +62,6 @@ local LuauCaptureType = Luau.CaptureType
 local LuauBuiltinFunction = Luau.BuiltinFunction
 local LuauProtoFlag = Luau.ProtoFlag
 
-local tostring = Implementations.tostring
 local toboolean = Implementations.toboolean
 local toEscapedString = Implementations.toEscapedString
 local formatIndexString = Implementations.formatIndexString
@@ -117,6 +115,11 @@ local function Decompile(bytecode)
 				proto.numParams = reader:nextByte()
 				proto.numUpvalues = reader:nextByte()
 				proto.isVarArg = toboolean(reader:nextByte())
+
+				-- prepare a table for upvalue references for further use if there are any
+				if proto.numUpvalues > 0 then
+					proto.nestedUpvalues = table.create(proto.numUpvalues)
+				end
 
 				-- read flags and typeinfo if bytecode version includes that information
 				if bytecodeVersion >= 4 then
@@ -189,14 +192,12 @@ local function Decompile(bytecode)
 						local closureId = reader:nextVarInt() + 1
 						constValue = closureId
 					elseif constType == LuauBytecodeTag.LBC_CONSTANT_VECTOR then
-						-- temporary implementation
 						local x, y, z, w = reader:nextFloat(), reader:nextFloat(), reader:nextFloat(), reader:nextFloat()
-
-						local proxy = newproxy(true)
-						local mt = getmetatable(proxy)
-						mt.__type = `Vector3.new({x}, {y}, {z})`
-
-						constValue = proxy
+						if w ~= 0 then
+							constValue = `Vector3.new({x}, {y}, {z}, {w})`
+						else
+							constValue = `Vector3.new({x}, {y}, {z})`
+						end
 					elseif constType ~= LuauBytecodeTag.LBC_CONSTANT_NIL then
 						-- handle unknown constant type later
 					end
@@ -250,11 +251,11 @@ local function Decompile(bytecode)
 								-- works in most cases but still gotta replace this
 								local sD = Luau:INSN_sD(insn)
 								if sD < -1 and val ~= 0 then
-									val = val - (0xFF + 1)
+									val -= (0xFF + 1)
 								end
 							elseif currOPInfo.name == "CALL" and val > 0 then
 								-- TODO: replace later. i dont trust this. check if there is a pointer to an instruction less than the current one
-								val = val - (0xFF + 1)
+								val -= (0xFF + 1)
 							end
 						end
 						smallLineInfo[i] = val
@@ -272,7 +273,7 @@ local function Decompile(bytecode)
 						if not added[largeLineIndex] then
 							added[largeLineIndex] = true
 							largeLine = largeLineInfo[largeLineIndex]
-							lastLine = lastLine + largeLine
+							lastLine += largeLine
 							if largeLineIndex ~= 0 then
 								offset = 0
 								lastOffset = offset
@@ -281,7 +282,7 @@ local function Decompile(bytecode)
 						local lineInsn = proto.insnTable[i]
 						local lineOP = lineInsn and Luau:INSN_OP(lineInsn)
 						local lineOPInfo = LuauOpCode[lineOP]
-						lastOffset = lastOffset + offset
+						lastOffset += offset
 						if i == 1 then
 							proto.firstInstruction = {lineOPInfo and lineOPInfo.name, largeLine}
 						end
@@ -358,7 +359,7 @@ local function Decompile(bytecode)
 										if ENABLED_REMARKS.INLINE_REMARK then
 											inlineRemarks[i..insn] = protoName
 										end
-										lineOffset = lineOffset + 0xFF + 1
+										lineOffset += (0xFF + 1)
 										for x = i, i + otherProto.sizeInsns - 1 do
 											queuedInsns[x] = true
 										end
@@ -383,7 +384,7 @@ local function Decompile(bytecode)
 		local function baseProto(proto, depth, isMainProto)
 			local localData = {}
 			local refData = {}
-			local upvalRefData = {}
+			--local upvalRefData = {}
 
 			local ifLoopPoints = {}
 			local promotedJumps = {}
@@ -445,7 +446,7 @@ local function Decompile(bytecode)
 				local dataTable
 				if t == "local" then
 					dataTable = localData
-					protoVars = protoVars + 1
+					protoVars += 1
 				elseif t == "global" then
 					dataTable = globalData
 				end
@@ -607,7 +608,7 @@ local function Decompile(bytecode)
 			else
 				protoOutput ..= baseFunc()
 
-				depth = depth + 1
+				depth += 1
 			end
 
 			-- instruction handling here
@@ -662,8 +663,8 @@ local function Decompile(bytecode)
 
 					-- no scope/flow control
 
-					local upvalRefs = {}
-					upvalRefData[protoId] = upvalRefs
+					--local upvalRefs = {}
+					--upvalRefData[protoId] = upvalRefs
 
 					local function addReference(refStart, refEnd)
 						for _, v in refData do
@@ -678,6 +679,20 @@ local function Decompile(bytecode)
 
 					local nilValue = { ["type"] = "nil", ["value"] = nil }
 
+					--
+					local function handleConstantValue(k)
+						if k["type"] == LuauBytecodeTag.LBC_CONSTANT_VECTOR then
+							return k.value
+						else
+							if type(tonumber(k.value)) == "number" then
+								return tonumber(string.format(`%0.{READER_FLOAT_PRECISION}f`, k.value))
+							else
+								return toEscapedString(k.value)
+							end
+						end
+					end
+					--
+
 					local opConstructors = {} do
 						opConstructors["LOADNIL"] = function()
 							protoOutput ..= baseLocal(A, "nil")
@@ -690,17 +705,11 @@ local function Decompile(bytecode)
 						end
 						opConstructors["LOADK"] = function()
 							local k = proto.constsTable[D + 1] or nilValue
-							if type(tonumber(k.value)) == "number" then
-								k = tonumber(string.format(`%0.{READER_FLOAT_PRECISION}f`, k.value))
-							else
-								k = toEscapedString(k.value)
-							end
-							protoOutput ..= baseLocal(A, k)
+							protoOutput ..= baseLocal(A, handleConstantValue(k))
 						end
 						opConstructors["LOADKX"] = function()
-							warn("LOADKX TEST", proto.constsTable, aux, D)
 							local k = proto.constsTable[aux + 1] or nilValue
-							protoOutput ..= baseLocal(A, toEscapedString(k.value))
+							protoOutput ..= baseLocal(A, handleConstantValue(k))
 						end
 						opConstructors["LOADB"] = function()
 							local value = toboolean(B)
@@ -713,17 +722,18 @@ local function Decompile(bytecode)
 							protoOutput ..= baseLocal(A, sD)
 						end
 						opConstructors["GETUPVAL"] = function()
-							local upvalRefs = upvalRefData[protoId - 1] or {}
+							--local upvalRefs = upvalRefData[protoId - 1] or {}
 
-							local var = upvalRefs[B]
-							if var then
-								protoOutput ..= baseLocal(A, toEscapedString(var))
-							else
-								protoOutput ..= baseLocal(A, `upvalues[{B}]`)
-							end
+							--local var = upvalRefs[B]
+							--if var then
+							--	protoOutput ..= baseLocal(A, toEscapedString(var))
+							--else
+							--	protoOutput ..= baseLocal(A, `upvalues[{B}]`)
+							--end
+							protoOutput ..= baseLocal(A, `{proto.nestedUpvalues[B]} -- get upval`)
 						end
 						opConstructors["SETUPVAL"] = function()
-							protoOutput ..= `upvalues[{B}] = {modifyRegister(A)}`
+							protoOutput ..= `{proto.nestedUpvalues[B]} = {modifyRegister(A)} -- set upval`
 						end
 						opConstructors["CLOSEUPVALS"] = function()
 							protoOutput ..= `[CLOSEUPVALS]: clear captures from back until: {A}`
@@ -759,11 +769,11 @@ local function Decompile(bytecode)
 						end
 						opConstructors["ANDK"] = function()
 							local k = proto.constsTable[C + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{modifyRegister(B)} and {toEscapedString(k.value)}`)
+							protoOutput ..= baseLocal(A, `{modifyRegister(B)} and {handleConstantValue(k)}`)
 						end
 						opConstructors["ORK"] = function()
 							local k = proto.constsTable[C + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{modifyRegister(B)} or {toEscapedString(k.value)}`)
+							protoOutput ..= baseLocal(A, `{modifyRegister(B)} or {handleConstantValue(k)}`)
 						end
 						opConstructors["FASTCALL"] = function()
 							protoOutput ..= `FASTCALL[{Luau:GetBuiltinInfo(A)}]()`
@@ -776,7 +786,7 @@ local function Decompile(bytecode)
 						end
 						opConstructors["FASTCALL2K"] = function()
 							local k = proto.constsTable[aux + 1] or nilValue
-							protoOutput ..= `FASTCALL[{Luau:GetBuiltinInfo(A)}]({modifyRegister(B)}, {toEscapedString(k.value)})`
+							protoOutput ..= `FASTCALL[{Luau:GetBuiltinInfo(A)}]({modifyRegister(B)}, {handleConstantValue(k)})`
 						end
 						opConstructors["GETIMPORT"] = function()
 							local indexCount = rshift(aux, 30) -- 0x40000000 --> 1, 0x80000000 --> 2
@@ -1104,42 +1114,42 @@ local function Decompile(bytecode)
 						end
 						opConstructors["ADDK"] = function()
 							local k = proto.constsTable[C + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{modifyRegister(B)} + {toEscapedString(k.value)}`)
+							protoOutput ..= baseLocal(A, `{modifyRegister(B)} + {handleConstantValue(k)}`)
 						end
 						opConstructors["SUB"] = function()
 							protoOutput ..= baseLocal(A, `{modifyRegister(B)} - {modifyRegister(C)}`)
 						end
 						opConstructors["SUBK"] = function()
 							local k = proto.constsTable[C + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{modifyRegister(B)} - {toEscapedString(k.value)}`)
+							protoOutput ..= baseLocal(A, `{modifyRegister(B)} - {handleConstantValue(k)}`)
 						end
 						opConstructors["MUL"] = function()
 							protoOutput ..= baseLocal(A, `{modifyRegister(B)} * {modifyRegister(C)}`)
 						end
 						opConstructors["MULK"] = function()
 							local k = proto.constsTable[C + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{modifyRegister(B)} * {toEscapedString(k.value)}`)
+							protoOutput ..= baseLocal(A, `{modifyRegister(B)} * {handleConstantValue(k)}`)
 						end
 						opConstructors["DIV"] = function()
 							protoOutput ..= baseLocal(A, `{modifyRegister(B)} / {modifyRegister(C)}`)
 						end
 						opConstructors["DIVK"] = function()
 							local k = proto.constsTable[C + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{modifyRegister(B)} / {toEscapedString(k.value)}`)
+							protoOutput ..= baseLocal(A, `{modifyRegister(B)} / {handleConstantValue(k)}`)
 						end
 						opConstructors["MOD"] = function()
 							protoOutput ..= baseLocal(A, `{modifyRegister(B)} % {modifyRegister(C)}`)
 						end
 						opConstructors["MODK"] = function()
 							local k = proto.constsTable[C + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{modifyRegister(B)} % {toEscapedString(k.value)}`)
+							protoOutput ..= baseLocal(A, `{modifyRegister(B)} % {handleConstantValue(k)}`)
 						end
 						opConstructors["POW"] = function()
 							protoOutput ..= baseLocal(A, `{modifyRegister(B)} ^ {modifyRegister(C)}`)
 						end
 						opConstructors["POWK"] = function()
 							local k = proto.constsTable[C + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{modifyRegister(B)} ^ {toEscapedString(k.value)}`)
+							protoOutput ..= baseLocal(A, `{modifyRegister(B)} ^ {handleConstantValue(k)}`)
 						end
 						opConstructors["CALL"] = function()
 							if C == 0 then -- MULTRET (Results)
@@ -1194,7 +1204,7 @@ local function Decompile(bytecode)
 							for i = 1, t.size do
 								local id = t.keys[i]
 								local k = proto.constsTable[id]
-								protoOutput ..= toEscapedString(k.value)
+								protoOutput ..= handleConstantValue(k)
 								if i < t.size then
 									protoOutput ..= ", "
 								end
@@ -1223,26 +1233,33 @@ local function Decompile(bytecode)
 						end
 						opConstructors["CAPTURE"] = function()
 							local captureType = ""
-							if A == 1 then
-								captureType = "UPVAL"
-							elseif A == 2 then
-								captureType = "REF"
-							elseif A == 3 then
+							if A == LuauCaptureType.LCT_VAL then
+								-- value is immutable
 								captureType = "VAL"
+							elseif A == LuauCaptureType.LCT_UPVAL then
+								-- upvalues are confirmed locals and not temporary registers
+								captureType = "UPVAL"
+							elseif A == LuauCaptureType.LCT_REF then
+								captureType = "REF"
 							end
 							protoOutput ..= string.format("CAPTURE %s %s%d\n", captureType, if captureType == "UPVAL" then "U" else "R", B)
 						end
 						opConstructors["SUBRK"] = function()
 							local k = proto.constsTable[B + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{toEscapedString(k.value)} - {modifyRegister(C)}`)
+							protoOutput ..= baseLocal(A, `{handleConstantValue(k)} - {modifyRegister(C)}`)
 						end
 						opConstructors["DIVRK"] = function()
 							local k = proto.constsTable[B + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{toEscapedString(k.value)} / {modifyRegister(C)}`)
+							protoOutput ..= baseLocal(A, `{handleConstantValue(k)} / {modifyRegister(C)}`)
 						end
 						opConstructors["NEWCLOSURE"] = function()
 							if SHOW_MISC_OPERATIONS then
 								protoOutput ..= "[NEWCLOSURE]\n"
+							end
+
+							local nextProto = proto.innerProtoTable[D + 1]
+							if not nextProto then
+								warn("no next proto?")
 							end
 
 							local nCaptures = 0
@@ -1256,15 +1273,18 @@ local function Decompile(bytecode)
 									local captureType = Luau:INSN_A(insn)
 									local captureIndex = Luau:INSN_B(insn)
 
-									nCaptures = nCaptures + 1
+									nCaptures += 1
 
 									addTab(depth)
-									if captureType == 0 or captureType == 1 then
+									if captureType == LuauCaptureType.LCT_VAL or captureType == LuauCaptureType.LCT_REF then
 										local varRef = modifyRegister(captureIndex, true)
-										upvalRefs[upvalueIndex] = varRef
+										--upvalRefs[upvalueIndex] = varRef
 										protoOutput ..= string.format("-- V nested upvalues[%i] = %s\n", upvalueIndex, varRef)
-									elseif captureType == 2 then
+										nextProto.nestedUpvalues[upvalueIndex] = varRef
+									elseif captureType == LuauCaptureType.LCT_UPVAL then
 										protoOutput ..= string.format("-- V nested upvalues[%i] = upvalues[%i]\n", upvalueIndex, captureIndex)
+										-- temporary
+										nextProto.nestedUpvalues[upvalueIndex] = `upvalues[{captureIndex}]`
 									else
 										error("[NEWCLOSURE] Invalid capture type")
 									end
@@ -1272,10 +1292,9 @@ local function Decompile(bytecode)
 									break
 								end
 							end
-							insnIndex = insnIndex + nCaptures
+							insnIndex += nCaptures
 
 							addTab(depth)
-							local nextProto = proto.innerProtoTable[D + 1]
 							if nextProto then
 								if nextProto.source then
 									protoOutput ..= baseProto(nextProto, depth, false)
@@ -1286,14 +1305,19 @@ local function Decompile(bytecode)
 								end
 
 								--TODO: idk what to do with this. causes issues sometimes
-								totalVars = totalVars + nextProto.numVars
-							else
-								warn("no next proto?")
+								totalVars += nextProto.numVars
 							end
 						end
 						opConstructors["DUPCLOSURE"] = function()
+							-- shared upvalues >= 0
+
 							if SHOW_MISC_OPERATIONS then
 								protoOutput ..= "[DUPCLOSURE]\n"
+							end
+
+							local nextProto = protoTable[proto.constsTable[D + 1].value - 1]
+							if not nextProto then
+								warn("no next proto?")
 							end
 
 							local nCaptures = 0
@@ -1307,15 +1331,18 @@ local function Decompile(bytecode)
 									local captureType = Luau:INSN_A(insn)
 									local captureIndex = Luau:INSN_B(insn)
 
-									nCaptures = nCaptures + 1
+									nCaptures += 1
 
 									addTab(depth)
-									if captureType == 0 or captureType == 1 then
+									if captureType == LuauCaptureType.LCT_VAL or captureType == LuauCaptureType.LCT_REF then
 										local varRef = modifyRegister(captureIndex)
-										upvalRefs[upvalueIndex] = varRef
+										--upvalRefs[upvalueIndex] = varRef
 										protoOutput ..= string.format("-- V nested upvalues[%i] = %s\n", upvalueIndex, varRef)
-									elseif captureType == 2 then
+										nextProto.nestedUpvalues[upvalueIndex] = varRef
+									elseif captureType == LuauCaptureType.LCT_UPVAL then
 										protoOutput ..= string.format("-- V nested upvalues[%i] = upvalues[%i]\n", upvalueIndex, captureIndex)
+										-- temporary
+										nextProto.nestedUpvalues[upvalueIndex] = `upvalues[{captureIndex}]`
 									else
 										error("[DUPCLOSURE] Invalid capture type")
 									end
@@ -1323,10 +1350,9 @@ local function Decompile(bytecode)
 									break
 								end
 							end
-							insnIndex = insnIndex + nCaptures
+							insnIndex += nCaptures
 
 							addTab(depth)
-							local nextProto = protoTable[proto.constsTable[D + 1].value - 1]
 							if nextProto then
 								if nextProto.source then
 									protoOutput ..= baseProto(nextProto, depth, false)
@@ -1335,8 +1361,9 @@ local function Decompile(bytecode)
 								else
 									protoOutput ..= string.format("[DUPCLOSURE] %s = ", modifyRegister(A)) .. baseProto(nextProto, depth, false)
 								end
-							else
-								warn("no next proto?")
+
+								--TODO: idk what to do with this. causes issues sometimes
+								totalVars += nextProto.numVars
 							end
 						end
 						opConstructors["PREPVARARGS"] = function()
@@ -1364,7 +1391,7 @@ local function Decompile(bytecode)
 						end
 						opConstructors["IDIVK"] = function()
 							local k = proto.constsTable[C + 1] or nilValue
-							protoOutput ..= baseLocal(A, `{modifyRegister(B)} // {toEscapedString(k.value)}`)
+							protoOutput ..= baseLocal(A, `{modifyRegister(B)} // {handleConstantValue(k)}`)
 						end
 					end
 
@@ -1416,7 +1443,7 @@ local function Decompile(bytecode)
 			end
 
 			if not isMainProto then
-				depth = depth - 1
+				depth -= 1
 
 				addTab(depth)
 				protoOutput ..= "end"
@@ -1446,8 +1473,27 @@ local function Decompile(bytecode)
 	end
 	local function manager(proceed, issue)
 		if proceed then
-			local result = optimize(roughDecompilation())
-			return string.format(Strings.SUCCESS, result)
+			local startTime
+			local elapsedTime
+
+			local result
+			local function processingTask()
+				startTime = os.clock()
+				result = optimize(roughDecompilation())
+				elapsedTime = os.clock() - startTime
+			end
+			task.spawn(processingTask)
+
+			-- wait for yielding task
+			while not result and (os.clock() - startTime) < DECOMPILER_TIMEOUT do
+				task.wait()
+			end
+
+			if result then
+				return string.format(Strings.SUCCESS, result), elapsedTime
+			else
+				return Strings.TIMEOUT
+			end
 		else
 			if issue == "COMPILATION_FAILURE" then
 				local errorMessageLength = reader:len() - 1
@@ -1502,12 +1548,10 @@ _ENV.decompile = function(script)
 		return
 	end
 
-	local startTime = os.clock()
-	local output = Decompile(result)
-	local timeTaken = os.clock() - startTime
+	local output, elapsedTime = Decompile(result)
 
-	if RETURN_TIME_TAKEN then
-		return output, timeTaken
+	if RETURN_ELAPSED_TIME then
+		return output, elapsedTime
 	else
 		return output
 	end
