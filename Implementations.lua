@@ -2,24 +2,6 @@ local _ENV = (getgenv or getfenv)()
 
 local Implementations = {}
 
--- custom tostring to support different constants (will be replaced later on.)
-function Implementations.tostring(e)
-	if typeof(e) == "userdata" then
-		local mt = getmetatable(e)
-		if type(mt) == "table" then
-			local __type = rawget(mt, "__type")
-			local t = type(__type)
-			if t == "string" then
-				return __type
-			elseif t == "function" then
-				return __type()
-			end
-		end
-	end
-
-	return tostring(e)
-end
-
 -- from number to boolean
 function Implementations.toboolean(n)
 	return n ~= 0
@@ -38,7 +20,7 @@ function Implementations.toEscapedString(s)
 			return `"{s}"`
 		end
 	else
-		return Implementations.tostring(s)
+		return tostring(s)
 	end
 end
 
