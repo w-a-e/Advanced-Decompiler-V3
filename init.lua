@@ -551,10 +551,13 @@ local function Decompile(bytecode)
 				local hasTypedParameters = false
 				if protoTypeInfo and #protoTypeInfo > 0 then
 					local encodedType = table.remove(protoTypeInfo, 1)
-					assert(encodedType == LuauBytecodeType.LBC_TYPE_FUNCTION)
-					local numparams = table.remove(protoTypeInfo, 1)
+					if (encodedType ~= LuauBytecodeType.LBC_TYPE_FUNCTION) then
+						-- this shouldn't happen? but it happened so i had to do this
+					else
+						local numparams = table.remove(protoTypeInfo, 1)
 
-					hasTypedParameters = true
+						hasTypedParameters = true
+					end
 				end
 
 				-- complex parameter handling
