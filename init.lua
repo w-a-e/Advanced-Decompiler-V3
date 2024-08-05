@@ -459,6 +459,7 @@ local function Decompile(bytecode)
 			local function modifyRegister(register, isUpvalue)
 				-- parameter registers are preallocated
 				print('Register Proto Error?')
+				print('Register:', register, '\nNumParams:', protoNumParams)
 				if register < protoNumParams then
 					return `p{(totalParams - protoNumParams) + register + 1}`
 				else
