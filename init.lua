@@ -356,9 +356,9 @@ local function Decompile(bytecode)
 									local firstInstructionInfo = otherProto.firstInstruction
 									if opInfo.name == firstInstructionInfo[1] and actualInstructionLine == firstInstructionInfo[2] then
 										-- this instruction was used in another function previously defined
-										if ENABLED_REMARKS.INLINE_REMARK then
+										--if ENABLED_REMARKS.INLINE_REMARK then
 											inlineRemarks[i..insn] = protoName
-										end
+										--end
 										lineOffset += (0xFF + 1)
 										for x = i, i + otherProto.sizeInsns - 1 do
 											queuedInsns[x] = true
@@ -486,9 +486,9 @@ local function Decompile(bytecode)
 				if isNative then
 					output ..= "--!native\n"
 
-					if ENABLED_REMARKS.NATIVE_REMARK and isCold then
+					--if ENABLED_REMARKS.NATIVE_REMARK and isCold then
 						output ..= string.format(Strings.DECOMPILER_REMARK, "This function is cold and is not compiled natively")
-					end
+					--end
 				end
 
 				return output
