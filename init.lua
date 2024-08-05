@@ -1520,8 +1520,8 @@ local function Decompile(bytecode)
 	end
 end
 
-local _ENV = (getgenv or getrenv or getfenv)()
-_ENV.decompile = function(script)
+																
+local decompile = function(script)
 	if typeof(script) ~= "Instance" then
 		error("invalid argument #1 to 'decompile' (Instance expected)", 2)
 		return
@@ -1559,3 +1559,5 @@ _ENV.decompile = function(script)
 		return output
 	end
 end
+
+return decompile
