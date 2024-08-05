@@ -23,7 +23,7 @@ function rshift(x, disp)
 end
 
 local function LoadFromUrl(x)
-	local BASE_USER = "w-a-e"
+	local BASE_USER = "NKachi2U"
 	local BASE_BRANCH = "main"
 	local BASE_URL = "https://raw.githubusercontent.com/%s/Advanced-Decompiler-V3/%s/%s.lua"
 
