@@ -24,7 +24,7 @@ end
 
 local function LoadFromUrl(x)
 	local BASE_USER = "NKachi2U"
-	local BASE_BRANCH = "main"
+	local BASE_BRANCH = "patch-1"
 	local BASE_URL = "https://raw.githubusercontent.com/%s/Advanced-Decompiler-V3/%s/%s.lua"
 
 	local loadSuccess, loadResult = pcall(function()
