@@ -458,6 +458,7 @@ local function Decompile(bytecode)
 			end
 			local function modifyRegister(register, isUpvalue)
 				-- parameter registers are preallocated
+				print('Register Proto Error?')
 				if register < protoNumParams then
 					return `p{(totalParams - protoNumParams) + register + 1}`
 				else
@@ -574,7 +575,7 @@ local function Decompile(bytecode)
 					end
 
 					output ..= `p{paramRef}{typeSetString}`
-
+					print('I proto error?')
 					if i < proto.numParams then
 						output ..= ", "
 					end
@@ -1208,6 +1209,7 @@ local function Decompile(bytecode)
 								local id = t.keys[i]
 								local k = proto.constsTable[id]
 								protoOutput ..= handleConstantValue(k)
+								print('i t.size error?')
 								if i < t.size then
 									protoOutput ..= ", "
 								end
@@ -1411,6 +1413,7 @@ local function Decompile(bytecode)
 								protoOutput ..= " -- referenced by "
 								for i = 1, #v.refs do
 									protoOutput ..= "#" .. v.refs[i]
+									print('i vrefs error?')
 									if i < #v.refs then
 										protoOutput ..= ", "
 									end
@@ -1488,6 +1491,7 @@ local function Decompile(bytecode)
 			task.spawn(processingTask)
 
 			-- wait for yielding task
+			print('decompiler timeout error?')
 			while not result and (os.clock() - startTime) < DECOMPILER_TIMEOUT do
 				task.wait()
 			end
@@ -1509,6 +1513,7 @@ local function Decompile(bytecode)
 	end
 	--
 	bytecodeVersion = reader:nextByte()
+	print('bytecodeversion error?')
 	if bytecodeVersion == 0 then
 		-- script errored
 		return manager(false, "COMPILATION_FAILURE")
