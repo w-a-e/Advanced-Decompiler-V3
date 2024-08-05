@@ -4,7 +4,7 @@
 --TODO: stop listing nested upvalues and use them directly
 --TODO: use letter "u" instead of "v" for upvalues
 
-;;CONSTANTS HERE;;
+--;;CONSTANTS HERE;;
 
 -- TEMPORARY
 local POINT_TYPE_END = 0
