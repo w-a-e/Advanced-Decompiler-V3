@@ -251,7 +251,15 @@ local Luau = {
 		{ ["name"] = "FORGPREP_INEXT", ["type"] = "iA" },
 
 		-- removed in v3
-		{ ["name"] = "DEP_FORGLOOP_INEXT", ["type"] = "iA" },
+		--{ ["name"] = "DEP_FORGLOOP_INEXT", ["type"] = "iA" },
+
+		-- FASTCALL3: perform a fast call of a built-in function using 3 register arguments
+		-- A: builtin function id (see LuauBuiltinFunction)
+		-- B: source argument register
+		-- C: jump offset to get to following CALL
+		-- AUX: source register 2 in least-significant byte
+		-- AUX: source register 3 in second least-significant byte
+		{ ["name"] = "FASTCALL3", ["type"] = "iABC", ["aux"] = true },
 
 		-- FORGPREP_NEXT: prepare FORGLOOP with 2 output variables (no AUX encoding), assuming generator is luaB_next, and jump to FORGLOOP
 		-- A: target register (see FORGLOOP for register layout)
@@ -312,8 +320,8 @@ local Luau = {
 
 		-- SUBRK, DIVRK: compute arithmetic operation between the constant and a source register and put the result into target register
 		-- A: target register
-		-- B: source register
-		-- C: constant table index (0..255); must refer to a number
+		-- B: constant table index (0..255); must refer to a number
+		-- C: source register
 		{ ["name"] = "SUBRK", ["type"] = "iABC" },
 		{ ["name"] = "DIVRK", ["type"] = "iABC" },
 
@@ -375,10 +383,10 @@ local Luau = {
 	BytecodeTag = {
 		-- Bytecode version; runtime supports [MIN, MAX]
 		LBC_VERSION_MIN = 3,
-		LBC_VERSION_MAX = 5,
+		LBC_VERSION_MAX = 6,
 		-- Type encoding version
-		LBC_TYPE_VERSION_DEPRECATED = 1,
-		LBC_TYPE_VERSION = 2,
+		LBC_TYPE_VERSION_MIN = 1,
+		LBC_TYPE_VERSION_MAX = 3,
 		-- Types of constant table entries
 		LBC_CONSTANT_NIL = 0,
 		LBC_CONSTANT_BOOLEAN = 1,
@@ -403,6 +411,10 @@ local Luau = {
 		LBC_TYPE_BUFFER = 9,
 
 		LBC_TYPE_ANY = 15,
+
+		LBC_TYPE_TAGGED_USERDATA_BASE = 64,
+		LBC_TYPE_TAGGED_USERDATA_END = 64 + 32,
+		
 		LBC_TYPE_OPTIONAL_BIT = bit32.lshift(1, 7), -- 128
 
 		LBC_TYPE_INVALID = 256
@@ -537,7 +549,9 @@ local Luau = {
 		-- used to tag main proto for modules with --!native
 		LPF_NATIVE_MODULE = bit32.lshift(1, 0),
 		-- used to tag individual protos as not profitable to compile natively
-		LPF_NATIVE_COLD = bit32.lshift(1, 1)
+		LPF_NATIVE_COLD = bit32.lshift(1, 1),
+		-- used to tag main proto for modules that have at least one function with native attribute
+		LPF_NATIVE_FUNCTION = bit32.lshift(1, 2)
 	}
 }
 
