@@ -794,6 +794,10 @@ local function Decompile(bytecode)
 						opConstructors["FASTCALL2"] = function()
 							protoOutput ..= `FASTCALL[{Luau:GetBuiltinInfo(A)}]({modifyRegister(B)}, {modifyRegister(aux)})`
 						end
+						opConstructors["FASTCALL3"] = function()
+							local sR = bit32.band(aux, 0xFF)
+							protoOutput ..= `FASTCALL[{Luau:GetBuiltinInfo(A)}]({modifyRegister(B)}, {modifyRegister(sR)}, {modifyRegister(bit32.rshift(sR, 8))})`
+						end
 						opConstructors["FASTCALL2K"] = function()
 							local k = proto.constsTable[aux + 1] or nilValue
 							protoOutput ..= `FASTCALL[{Luau:GetBuiltinInfo(A)}]({modifyRegister(B)}, {handleConstantValue(k)})`
