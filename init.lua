@@ -11,17 +11,6 @@ local POINT_TYPE_END = 0
 local POINT_TYPE_ELSE = 1
 local POINT_TYPE_ELSEIF = 2
 
--- maybe move this somewhere? its just faster bit32 funcs
-local lshift, rshift
-function lshift(x, disp)
-	if disp < 0 then return rshift(x,-disp) end
-	return (x * 2^disp) % 2^32
-end
-function rshift(x, disp)
-	if disp < 0 then return lshift(x,-disp) end
-	return (x % 2^32) // (2^disp)
-end
-
 local function LoadFromUrl(x)
 	local BASE_USER = "w-a-e"
 	local BASE_BRANCH = "main"
@@ -54,6 +43,11 @@ local Implementations = LoadFromUrl("Implementations")
 local Reader = LoadFromUrl("Reader")
 local Strings = LoadFromUrl("Strings")
 local Luau = LoadFromUrl("Luau")
+
+local function LoadFlag(name)
+	return game:GetFastFlag(name)
+end
+local LuauCompileUserdataInfo = LoadFlag("LuauCompileUserdataInfo")
 
 local LuauOpCode = Luau.OpCode
 local LuauBytecodeTag = Luau.BytecodeTag
@@ -89,6 +83,19 @@ local function Decompile(bytecode)
 			end
 		end
 		readStringTable()
+
+		local userdataTypes = {}
+		if LuauCompileUserdataInfo then
+			while true do
+				local index = reader:nextByte()
+				if index == 0 then -- end
+					break
+				end
+
+				local nameRef = reader:nextVarInt()
+				userdataTypes[index] = nameRef
+			end
+		end
 
 		local protoTable = {}
 		local function readProtoTable()
@@ -150,11 +157,11 @@ local function Decompile(bytecode)
 					elseif constType == LuauBytecodeTag.LBC_CONSTANT_IMPORT then
 						local id = reader:nextUInt32()
 
-						local indexCount = rshift(id, 30)
+						local indexCount = bit32.rshift(id, 30)
 
-						local cacheIndex1 = bit32.band(rshift(id, 20), 0x3FF)
-						local cacheIndex2 = bit32.band(rshift(id, 10), 0x3FF)
-						local cacheIndex3 = bit32.band(rshift(id, 0), 0x3FF)
+						local cacheIndex1 = bit32.band(bit32.rshift(id, 20), 0x3FF)
+						local cacheIndex2 = bit32.band(bit32.rshift(id, 10), 0x3FF)
+						local cacheIndex3 = bit32.band(bit32.rshift(id, 0), 0x3FF)
 
 						local importTag = "("
 
@@ -224,7 +231,7 @@ local function Decompile(bytecode)
 					-- this code is confusing
 					local logspan = reader:nextByte() -- uint8
 
-					local intervals = rshift(proto.sizeInsns - 1, logspan) + 1
+					local intervals = bit32.rshift(proto.sizeInsns - 1, logspan) + 1
 
 					local lastOffset = 0
 					local lastLine = 0
@@ -268,7 +275,7 @@ local function Decompile(bytecode)
 
 					for i, offset in smallLineInfo do
 						-- HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP
-						local largeLineIndex = rshift(i - 0.1, logspan)
+						local largeLineIndex = bit32.rshift(i - 0.1, logspan)
 						local largeLine
 						if not added[largeLineIndex] then
 							added[largeLineIndex] = true
@@ -792,11 +799,11 @@ local function Decompile(bytecode)
 							protoOutput ..= `FASTCALL[{Luau:GetBuiltinInfo(A)}]({modifyRegister(B)}, {handleConstantValue(k)})`
 						end
 						opConstructors["GETIMPORT"] = function()
-							local indexCount = rshift(aux, 30) -- 0x40000000 --> 1, 0x80000000 --> 2
+							local indexCount = bit32.rshift(aux, 30) -- 0x40000000 --> 1, 0x80000000 --> 2
 
-							local cacheIndex1 = bit32.band(rshift(aux, 20), 0x3FF)
-							local cacheIndex2 = bit32.band(rshift(aux, 10), 0x3FF)
-							local cacheIndex3 = bit32.band(rshift(aux, 0), 0x3FF)
+							local cacheIndex1 = bit32.band(bit32.rshift(aux, 20), 0x3FF)
+							local cacheIndex2 = bit32.band(bit32.rshift(aux, 10), 0x3FF)
+							local cacheIndex3 = bit32.band(bit32.rshift(aux, 0), 0x3FF)
 
 							if indexCount == 1 then
 								local k1 = tostring(proto.constsTable[cacheIndex1 + 1].value)
@@ -879,7 +886,7 @@ local function Decompile(bytecode)
 							protoOutput ..= `for {regStr} in {modifyRegister(A)} do -- [escape at #{endInsnIndex}]`
 						end
 						opConstructors["FORGLOOP"] = function()
-							local respectsArrayOrder = toboolean(rshift(aux, 0x1F))
+							local respectsArrayOrder = toboolean(bit32.rshift(aux, 0x1F))
 							protoOutput ..= "end" .. string.format(" -- FORGLOOP - iterate + goto #%i", insnIndex + sD) .. (respectsArrayOrder and " (ipairs)" or "")
 						end
 						opConstructors["FORGPREP_INEXT"] = function()
@@ -1059,7 +1066,7 @@ local function Decompile(bytecode)
 						end
 						opConstructors["JUMPXEQKNIL"] = function() -- inverse
 							addReference(insnIndex, insnIndex + sD)
-							local NOTFlag = rshift(aux, 0x1F) ~= 1
+							local NOTFlag = bit32.rshift(aux, 0x1F) ~= 1
 							local nextInsn = proto.insnTable[insnIndex + 2]
 							local nextOP = Luau:INSN_OP(nextInsn)
 							if LuauOpCode[nextOP] and LuauOpCode[nextOP].name == "JUMPBACK" then
@@ -1072,7 +1079,7 @@ local function Decompile(bytecode)
 						end
 						opConstructors["JUMPXEQKB"] = function() -- inverse
 							addReference(insnIndex, insnIndex + sD)
-							local NOTFlag = rshift(aux, 0x1F) ~= 1
+							local NOTFlag = bit32.rshift(aux, 0x1F) ~= 1
 							local nextInsn = proto.insnTable[insnIndex + 2]
 							local nextOP = Luau:INSN_OP(nextInsn)
 							if LuauOpCode[nextOP] and LuauOpCode[nextOP].name == "JUMPBACK" then
@@ -1085,7 +1092,7 @@ local function Decompile(bytecode)
 						end
 						opConstructors["JUMPXEQKN"] = function() -- inverse
 							addReference(insnIndex, insnIndex + sD)
-							local NOTFlag = rshift(aux, 0x1F) ~= 1
+							local NOTFlag = bit32.rshift(aux, 0x1F) ~= 1
 							local nextInsn = proto.insnTable[insnIndex + 2]
 							local nextOP = Luau:INSN_OP(nextInsn)
 							if LuauOpCode[nextOP] and LuauOpCode[nextOP].name == "JUMPBACK" then
@@ -1099,7 +1106,7 @@ local function Decompile(bytecode)
 						end
 						opConstructors["JUMPXEQKS"] = function() -- inverse
 							addReference(insnIndex, insnIndex + sD)
-							local NOTFlag = rshift(aux, 0x1F) ~= 1
+							local NOTFlag = bit32.rshift(aux, 0x1F) ~= 1
 							local nextInsn = proto.insnTable[insnIndex + 2]
 							local nextOP = Luau:INSN_OP(nextInsn)
 							local nextOPName = LuauOpCode[nextOP] and LuauOpCode[nextOP].name
