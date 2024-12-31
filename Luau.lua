@@ -13,103 +13,103 @@ local Luau = {
 
 		-- LOADNIL: sets register to nil
 		-- A: target register
-		{ ["name"] = "LOADNIL", ["type"] = "iA" },
+		{ ["name"] = "LOADNIL", ["type"] = "A" },
 
 		-- LOADB: sets register to boolean and jumps to a given short offset (used to compile comparison results into a boolean)
 		-- A: target register
 		-- B: value (0/1)
 		-- C: jump offset
-		{ ["name"] = "LOADB", ["type"] = "iABC" },
+		{ ["name"] = "LOADB", ["type"] = "ABC" },
 
 		-- LOADN: sets register to a number literal
 		-- A: target register
 		-- D: value (-32768..32767)
-		{ ["name"] = "LOADN", ["type"] = "iAsD" },
+		{ ["name"] = "LOADN", ["type"] = "AsD" },
 
 		-- LOADK: sets register to an entry from the constant table from the proto (number/vector/string)
 		-- A: target register
 		-- D: constant table index (0..32767)
-		{ ["name"] = "LOADK", ["type"] = "iAD" },
+		{ ["name"] = "LOADK", ["type"] = "AD" },
 
 		-- MOVE: move (copy) value from one register to another
 		-- A: target register
 		-- B: source register
-		{ ["name"] = "MOVE", ["type"] = "iAB" },
+		{ ["name"] = "MOVE", ["type"] = "AB" },
 
 		-- GETGLOBAL: load value from global table using constant string as a key
 		-- A: target register
 		-- C: predicted slot index (based on hash)
 		-- AUX: constant table index
-		{ ["name"] = "GETGLOBAL", ["type"] = "iAC", ["aux"] = true },
+		{ ["name"] = "GETGLOBAL", ["type"] = "AC", ["aux"] = true },
 
 		-- SETGLOBAL: set value in global table using constant string as a key
 		-- A: source register
 		-- C: predicted slot index (based on hash)
 		-- AUX: constant table index
-		{ ["name"] = "SETGLOBAL", ["type"] = "iAC", ["aux"] = true },
+		{ ["name"] = "SETGLOBAL", ["type"] = "AC", ["aux"] = true },
 
 		-- GETUPVAL: load upvalue from the upvalue table for the current function
 		-- A: target register
 		-- B: upvalue index
-		{ ["name"] = "GETUPVAL", ["type"] = "iAB" },
+		{ ["name"] = "GETUPVAL", ["type"] = "AB" },
 
 		-- SETUPVAL: store value into the upvalue table for the current function
-		-- A: target register
+		-- A: source register
 		-- B: upvalue index
-		{ ["name"] = "SETUPVAL", ["type"] = "iAB" },
+		{ ["name"] = "SETUPVAL", ["type"] = "AB" },
 
 		-- CLOSEUPVALS: close (migrate to heap) all upvalues that were captured for registers >= target
 		-- A: target register
-		{ ["name"] = "CLOSEUPVALS", ["type"] = "iA" },
+		{ ["name"] = "CLOSEUPVALS", ["type"] = "A" },
 
 		-- GETIMPORT: load imported global table global from the constant table
 		-- A: target register
 		-- D: constant table index (0..32767); we assume that imports are loaded into the constant table
 		-- AUX: 3 10-bit indices of constant strings that, combined, constitute an import path; length of the path is set by the top 2 bits (1,2,3)
-		{ ["name"] = "GETIMPORT", ["type"] = "iAD", ["aux"] = true },
+		{ ["name"] = "GETIMPORT", ["type"] = "AD", ["aux"] = true },
 
 		-- GETTABLE: load value from table into target register using key from register
 		-- A: target register
 		-- B: table register
 		-- C: index register
-		{ ["name"] = "GETTABLE", ["type"] = "iABC" },
+		{ ["name"] = "GETTABLE", ["type"] = "ABC" },
 
 		-- SETTABLE: store source register into table using key from register
 		-- A: source register
 		-- B: table register
 		-- C: index register
-		{ ["name"] = "SETTABLE", ["type"] = "iABC" },
+		{ ["name"] = "SETTABLE", ["type"] = "ABC" },
 
 		-- GETTABLEKS: load value from table into target register using constant string as a key
 		-- A: target register
 		-- B: table register
 		-- C: predicted slot index (based on hash)
 		-- AUX: constant table index
-		{ ["name"] = "GETTABLEKS", ["type"] = "iABC", ["aux"] = true },
+		{ ["name"] = "GETTABLEKS", ["type"] = "ABC", ["aux"] = true },
 
 		-- SETTABLEKS: store source register into table using constant string as a key
 		-- A: source register
 		-- B: table register
 		-- C: predicted slot index (based on hash)
 		-- AUX: constant table index
-		{ ["name"] = "SETTABLEKS", ["type"] = "iABC", ["aux"] = true },
+		{ ["name"] = "SETTABLEKS", ["type"] = "ABC", ["aux"] = true },
 
 		-- GETTABLEN: load value from table into target register using small integer index as a key
 		-- A: target register
 		-- B: table register
 		-- C: index-1 (index is 1..256)
-		{ ["name"] = "GETTABLEN", ["type"] = "iABC" },
+		{ ["name"] = "GETTABLEN", ["type"] = "ABC" },
 
 		-- SETTABLEN: store source register into table using small integer index as a key
 		-- A: source register
 		-- B: table register
 		-- C: index-1 (index is 1..256)
-		{ ["name"] = "SETTABLEN", ["type"] = "iABC" },
+		{ ["name"] = "SETTABLEN", ["type"] = "ABC" },
 
 		-- NEWCLOSURE: create closure from a child proto; followed by a CAPTURE instruction for each upvalue
 		-- A: target register
 		-- D: child proto index (0..32767)
-		{ ["name"] = "NEWCLOSURE", ["type"] = "iAD" },
+		{ ["name"] = "NEWCLOSURE", ["type"] = "AD" },
 
 		-- NAMECALL: prepare to call specified method by name by loading function from source register using constant index into target register and copying source register into target register + 1
 		-- A: target register
@@ -118,125 +118,125 @@ local Luau = {
 		-- AUX: constant table index
 		-- Note that this instruction must be followed directly by CALL; it prepares the arguments
 		-- This instruction is roughly equivalent to GETTABLEKS + MOVE pair, but we need a special instruction to support custom __namecall metamethod
-		{ ["name"] = "NAMECALL", ["type"] = "iABC", ["aux"] = true },
+		{ ["name"] = "NAMECALL", ["type"] = "ABC", ["aux"] = true },
 
 		-- CALL: call specified function
 		-- A: register where the function object lives, followed by arguments; results are placed starting from the same register
 		-- B: argument count + 1, or 0 to preserve all arguments up to top (MULTRET)
 		-- C: result count + 1, or 0 to preserve all values and adjust top (MULTRET)
-		{ ["name"] = "CALL", ["type"] = "iABC" },
+		{ ["name"] = "CALL", ["type"] = "ABC" },
 
 		-- RETURN: returns specified values from the function
 		-- A: register where the returned values start
 		-- B: number of returned values + 1, or 0 to return all values up to top (MULTRET)
-		{ ["name"] = "RETURN", ["type"] = "iAB" },
+		{ ["name"] = "RETURN", ["type"] = "AB" },
 
 		-- JUMP: jumps to target offset
 		-- D: jump offset (-32768..32767; 0 means "next instruction" aka "don't jump")
-		{ ["name"] = "JUMP", ["type"] = "isD" },
+		{ ["name"] = "JUMP", ["type"] = "sD" },
 
 		-- JUMPBACK: jumps to target offset; this is equivalent to JUMP but is used as a safepoint to be able to interrupt while/repeat loops
 		-- D: jump offset (-32768..32767; 0 means "next instruction" aka "don't jump")
-		{ ["name"] = "JUMPBACK", ["type"] = "isD" },
+		{ ["name"] = "JUMPBACK", ["type"] = "sD" },
 
 		-- JUMPIF: jumps to target offset if register is not nil/false
 		-- A: source register
 		-- D: jump offset (-32768..32767; 0 means "next instruction" aka "don't jump")
-		{ ["name"] = "JUMPIF", ["type"] = "iAsD" },
+		{ ["name"] = "JUMPIF", ["type"] = "AsD" },
 
 		-- JUMPIFNOT: jumps to target offset if register is nil/false
 		-- A: source register
 		-- D: jump offset (-32768..32767; 0 means "next instruction" aka "don't jump")
-		{ ["name"] = "JUMPIFNOT", ["type"] = "iAsD" },
+		{ ["name"] = "JUMPIFNOT", ["type"] = "AsD" },
 
 		-- JUMPIFEQ, JUMPIFLE, JUMPIFLT, JUMPIFNOTEQ, JUMPIFNOTLE, JUMPIFNOTLT: jumps to target offset if the comparison is true (or false, for NOT variants)
 		-- A: source register 1
 		-- D: jump offset (-32768..32767; 1 means "next instruction" aka "don't jump")
 		-- AUX: source register 2
-		{ ["name"] = "JUMPIFEQ", ["type"] = "iAsD", ["aux"] = true },
-		{ ["name"] = "JUMPIFLE", ["type"] = "iAsD", ["aux"] = true },
-		{ ["name"] = "JUMPIFLT", ["type"] = "iAsD", ["aux"] = true },
-		{ ["name"] = "JUMPIFNOTEQ", ["type"] = "iAsD", ["aux"] = true },
-		{ ["name"] = "JUMPIFNOTLE", ["type"] = "iAsD", ["aux"] = true },
-		{ ["name"] = "JUMPIFNOTLT", ["type"] = "iAsD", ["aux"] = true },
+		{ ["name"] = "JUMPIFEQ", ["type"] = "AsD", ["aux"] = true },
+		{ ["name"] = "JUMPIFLE", ["type"] = "AsD", ["aux"] = true },
+		{ ["name"] = "JUMPIFLT", ["type"] = "AsD", ["aux"] = true },
+		{ ["name"] = "JUMPIFNOTEQ", ["type"] = "AsD", ["aux"] = true },
+		{ ["name"] = "JUMPIFNOTLE", ["type"] = "AsD", ["aux"] = true },
+		{ ["name"] = "JUMPIFNOTLT", ["type"] = "AsD", ["aux"] = true },
 
 		-- ADD, SUB, MUL, DIV, MOD, POW: compute arithmetic operation between two source registers and put the result into target register
 		-- A: target register
 		-- B: source register 1
 		-- C: source register 2
-		{ ["name"] = "ADD", ["type"] = "iABC" },
-		{ ["name"] = "SUB", ["type"] = "iABC" },
-		{ ["name"] = "MUL", ["type"] = "iABC" },
-		{ ["name"] = "DIV", ["type"] = "iABC" },
-		{ ["name"] = "MOD", ["type"] = "iABC" },
-		{ ["name"] = "POW", ["type"] = "iABC" },
+		{ ["name"] = "ADD", ["type"] = "ABC" },
+		{ ["name"] = "SUB", ["type"] = "ABC" },
+		{ ["name"] = "MUL", ["type"] = "ABC" },
+		{ ["name"] = "DIV", ["type"] = "ABC" },
+		{ ["name"] = "MOD", ["type"] = "ABC" },
+		{ ["name"] = "POW", ["type"] = "ABC" },
 
 		-- ADDK, SUBK, MULK, DIVK, MODK, POWK: compute arithmetic operation between the source register and a constant and put the result into target register
 		-- A: target register
 		-- B: source register
 		-- C: constant table index (0..255); must refer to a number
-		{ ["name"] = "ADDK", ["type"] = "iABC" },
-		{ ["name"] = "SUBK", ["type"] = "iABC" },
-		{ ["name"] = "MULK", ["type"] = "iABC" },
-		{ ["name"] = "DIVK", ["type"] = "iABC" },
-		{ ["name"] = "MODK", ["type"] = "iABC" },
-		{ ["name"] = "POWK", ["type"] = "iABC" },
+		{ ["name"] = "ADDK", ["type"] = "ABC" },
+		{ ["name"] = "SUBK", ["type"] = "ABC" },
+		{ ["name"] = "MULK", ["type"] = "ABC" },
+		{ ["name"] = "DIVK", ["type"] = "ABC" },
+		{ ["name"] = "MODK", ["type"] = "ABC" },
+		{ ["name"] = "POWK", ["type"] = "ABC" },
 
 		-- AND, OR: perform `and` or `or` operation (selecting first or second register based on whether the first one is truthy) and put the result into target register
 		-- A: target register
 		-- B: source register 1
 		-- C: source register 2
-		{ ["name"] = "AND", ["type"] = "iABC" },
-		{ ["name"] = "OR", ["type"] = "iABC" },
+		{ ["name"] = "AND", ["type"] = "ABC" },
+		{ ["name"] = "OR", ["type"] = "ABC" },
 
 		-- ANDK, ORK: perform `and` or `or` operation (selecting source register or constant based on whether the source register is truthy) and put the result into target register
 		-- A: target register
 		-- B: source register
 		-- C: constant table index (0..255)
-		{ ["name"] = "ANDK", ["type"] = "iABC" },
-		{ ["name"] = "ORK", ["type"] = "iABC" },
+		{ ["name"] = "ANDK", ["type"] = "ABC" },
+		{ ["name"] = "ORK", ["type"] = "ABC" },
 
 		-- CONCAT: concatenate all strings between B and C (inclusive) and put the result into A
 		-- A: target register
 		-- B: source register start
 		-- C: source register end
-		{ ["name"] = "CONCAT", ["type"] = "iABC" },
+		{ ["name"] = "CONCAT", ["type"] = "ABC" },
 
 		-- NOT, MINUS, LENGTH: compute unary operation for source register and put the result into target register
 		-- A: target register
 		-- B: source register
-		{ ["name"] = "NOT", ["type"] = "iAB" },
-		{ ["name"] = "MINUS", ["type"] = "iAB" },
-		{ ["name"] = "LENGTH", ["type"] = "iAB" },
+		{ ["name"] = "NOT", ["type"] = "AB" },
+		{ ["name"] = "MINUS", ["type"] = "AB" },
+		{ ["name"] = "LENGTH", ["type"] = "AB" },
 
 		-- NEWTABLE: create table in target register
 		-- A: target register
 		-- B: table size, stored as 0 for v=0 and ceil(log2(v))+1 for v!=0
 		-- AUX: array size
-		{ ["name"] = "NEWTABLE", ["type"] = "iAB", ["aux"] = true },
+		{ ["name"] = "NEWTABLE", ["type"] = "AB", ["aux"] = true },
 
 		-- DUPTABLE: duplicate table using the constant table template to target register
 		-- A: target register
 		-- D: constant table index (0..32767)
-		{ ["name"] = "DUPTABLE", ["type"] = "iAD" },
+		{ ["name"] = "DUPTABLE", ["type"] = "AD" },
 
 		-- SETLIST: set a list of values to table in target register
 		-- A: target register
 		-- B: source register start
 		-- C: value count + 1, or 0 to use all values up to top (MULTRET)
 		-- AUX: table index to start from
-		{ ["name"] = "SETLIST", ["type"] = "iABC", ["aux"] = true },
+		{ ["name"] = "SETLIST", ["type"] = "ABC", ["aux"] = true },
 
 		-- FORNPREP: prepare a numeric for loop, jump over the loop if first iteration doesn't need to run
 		-- A: target register; numeric for loops assume a register layout [limit, step, index, variable]
 		-- D: jump offset (-32768..32767)
 		-- limit/step are immutable, index isn't visible to user code since it's copied into variable
-		{ ["name"] = "FORNPREP", ["type"] = "iAD" },
+		{ ["name"] = "FORNPREP", ["type"] = "AsD" },
 
 		-- FORNLOOP: adjust loop variables for one iteration, jump back to the loop header if loop needs to continue
 		-- A: target register; see FORNPREP for register layout
 		-- D: jump offset (-32768..32767)
-		{ ["name"] = "FORNLOOP", ["type"] = "iAsD" },
+		{ ["name"] = "FORNLOOP", ["type"] = "AsD" },
 
 		-- FORGLOOP: adjust loop variables for one iteration of a generic for loop, jump back to the loop header if loop needs to continue
 		-- A: target register; generic for loops assume a register layout [generator, state, index, variables...]
@@ -244,14 +244,14 @@ local Luau = {
 		-- AUX: variable count (1..255) in the low 8 bits, high bit indicates whether to use ipairs-style traversal in the fast path
 		-- loop variables are adjusted by calling generator(state, index) and expecting it to return a tuple that's copied to the user variables
 		-- the first variable is then copied into index; generator/state are immutable, index isn't visible to user code
-		{ ["name"] = "FORGLOOP", ["type"] = "iAsD", ["aux"] = true },
+		{ ["name"] = "FORGLOOP", ["type"] = "AsD", ["aux"] = true },
 
 		-- FORGPREP_INEXT: prepare FORGLOOP with 2 output variables (no AUX encoding), assuming generator is luaB_inext, and jump to FORGLOOP
 		-- A: target register (see FORGLOOP for register layout)
-		{ ["name"] = "FORGPREP_INEXT", ["type"] = "iA" },
+		{ ["name"] = "FORGPREP_INEXT", ["type"] = "A" },
 
 		-- removed in v3
-		--{ ["name"] = "DEP_FORGLOOP_INEXT", ["type"] = "iA" },
+		--{ ["name"] = "DEP_FORGLOOP_INEXT", ["type"] = "A" },
 
 		-- FASTCALL3: perform a fast call of a built-in function using 3 register arguments
 		-- A: builtin function id (see LuauBuiltinFunction)
@@ -259,14 +259,14 @@ local Luau = {
 		-- C: jump offset to get to following CALL
 		-- AUX: source register 2 in least-significant byte
 		-- AUX: source register 3 in second least-significant byte
-		{ ["name"] = "FASTCALL3", ["type"] = "iABC", ["aux"] = true },
+		{ ["name"] = "FASTCALL3", ["type"] = "ABC", ["aux"] = true },
 
 		-- FORGPREP_NEXT: prepare FORGLOOP with 2 output variables (no AUX encoding), assuming generator is luaB_next, and jump to FORGLOOP
 		-- A: target register (see FORGLOOP for register layout)
-		{ ["name"] = "FORGPREP_NEXT", ["type"] = "iA" },
+		{ ["name"] = "FORGPREP_NEXT", ["type"] = "A" },
 
 		-- no longer supported
-		--{ ["name"] = "DEP_FORGLOOP_NEXT", ["type"] = "iA" },
+		--{ ["name"] = "DEP_FORGLOOP_NEXT", ["type"] = "A" },
 
 		-- NATIVECALL: start executing new function in native code
 		-- this is a pseudo-instruction that is never emitted by bytecode compiler, but can be constructed at runtime to accelerate native code dispatch
@@ -275,25 +275,25 @@ local Luau = {
 		-- GETVARARGS: copy variables into the target register from vararg storage for current function
 		-- A: target register
 		-- B: variable count + 1, or 0 to copy all variables and adjust top (MULTRET)
-		{ ["name"] = "GETVARARGS", ["type"] = "iAB" },
+		{ ["name"] = "GETVARARGS", ["type"] = "AB" },
 
 		-- DUPCLOSURE: create closure from a pre-created function object (reusing it unless environments diverge)
 		-- A: target register
 		-- D: constant table index (0..32767)
-		{ ["name"] = "DUPCLOSURE", ["type"] = "iAD" },
+		{ ["name"] = "DUPCLOSURE", ["type"] = "AD" },
 
 		-- PREPVARARGS: prepare stack for variadic functions so that GETVARARGS works correctly
 		-- A: number of fixed arguments
-		{ ["name"] = "PREPVARARGS", ["type"] = "iA" },
+		{ ["name"] = "PREPVARARGS", ["type"] = "A" },
 
 		-- LOADKX: sets register to an entry from the constant table from the proto (number/string)
 		-- A: target register
 		-- AUX: constant table index
-		{ ["name"] = "LOADKX", ["type"] = "iA", ["aux"] = true },
+		{ ["name"] = "LOADKX", ["type"] = "A", ["aux"] = true },
 
 		-- JUMPX: jumps to the target offset; like JUMPBACK, supports interruption
 		-- E: jump offset (-2^23..2^23; 0 means "next instruction" aka "don't jump")
-		{ ["name"] = "JUMPX", ["type"] = "iE" },
+		{ ["name"] = "JUMPX", ["type"] = "E" },
 
 		-- FASTCALL: perform a fast call of a built-in function
 		-- A: builtin function id (see LuauBuiltinFunction)
@@ -302,79 +302,79 @@ local Luau = {
 		-- This is necessary so that if FASTCALL can't perform the call inline, it can continue normal execution
 		-- If FASTCALL *can* perform the call, it jumps over the instructions *and* over the next CALL
 		-- Note that FASTCALL will read the actual call arguments, such as argument/result registers and counts, from the CALL instruction
-		{ ["name"] = "FASTCALL", ["type"] = "iAC" },
+		{ ["name"] = "FASTCALL", ["type"] = "AC" },
 
 		-- COVERAGE: update coverage information stored in the instruction
 		-- E: hit count for the instruction (0..2^23-1)
 		-- The hit count is incremented by VM every time the instruction is executed, and saturates at 2^23-1
-		{ ["name"] = "COVERAGE", ["type"] = "iE" },
+		{ ["name"] = "COVERAGE", ["type"] = "E" },
 
 		-- CAPTURE: capture a local or an upvalue as an upvalue into a newly created closure; only valid after NEWCLOSURE
 		-- A: capture type, see LuauCaptureType
 		-- B: source register (for VAL/REF) or upvalue index (for UPVAL/UPREF)
-		{ ["name"] = "CAPTURE", ["type"] = "iAB" },
+		{ ["name"] = "CAPTURE", ["type"] = "AB" },
 
 		-- both no longer supported
-		--{ ["name"] = "DEP_JUMPIFEQK", ["type"] = "iAsD", ["aux"] = true },
-		--{ ["name"] = "DEP_JUMPIFNOTEQK", ["type"] = "iAsD", ["aux"] = true },
+		--{ ["name"] = "DEP_JUMPIFEQK", ["type"] = "AsD", ["aux"] = true },
+		--{ ["name"] = "DEP_JUMPIFNOTEQK", ["type"] = "AsD", ["aux"] = true },
 
 		-- SUBRK, DIVRK: compute arithmetic operation between the constant and a source register and put the result into target register
 		-- A: target register
 		-- B: constant table index (0..255); must refer to a number
 		-- C: source register
-		{ ["name"] = "SUBRK", ["type"] = "iABC" },
-		{ ["name"] = "DIVRK", ["type"] = "iABC" },
+		{ ["name"] = "SUBRK", ["type"] = "ABC" },
+		{ ["name"] = "DIVRK", ["type"] = "ABC" },
 
 		-- FASTCALL1: perform a fast call of a built-in function using 1 register argument
 		-- A: builtin function id (see LuauBuiltinFunction)
 		-- B: source argument register
 		-- C: jump offset to get to following CALL
-		{ ["name"] = "FASTCALL1", ["type"] = "iABC" },
+		{ ["name"] = "FASTCALL1", ["type"] = "ABC" },
 
 		-- FASTCALL2: perform a fast call of a built-in function using 2 register arguments
 		-- A: builtin function id (see LuauBuiltinFunction)
 		-- B: source argument register
 		-- C: jump offset to get to following CALL
 		-- AUX: source register 2 in least-significant byte
-		{ ["name"] = "FASTCALL2", ["type"] = "iABC", ["aux"] = true },
+		{ ["name"] = "FASTCALL2", ["type"] = "ABC", ["aux"] = true },
 
 		-- FASTCALL2K: perform a fast call of a built-in function using 1 register argument and 1 constant argument
 		-- A: builtin function id (see LuauBuiltinFunction)
 		-- B: source argument register
 		-- C: jump offset to get to following CALL
 		-- AUX: constant index
-		{ ["name"] = "FASTCALL2K", ["type"] = "iABC", ["aux"] = true },
+		{ ["name"] = "FASTCALL2K", ["type"] = "ABC", ["aux"] = true },
 
 		-- FORGPREP: prepare loop variables for a generic for loop, jump to the loop backedge unconditionally
 		-- A: target register; generic for loops assume a register layout [generator, state, index, variables...]
 		-- D: jump offset (-32768..32767)
-		{ ["name"] = "FORGPREP", ["type"] = "iAD" },
+		{ ["name"] = "FORGPREP", ["type"] = "AsD" },
 
 		-- JUMPXEQKNIL, JUMPXEQKB: jumps to target offset if the comparison with constant is true (or false, see AUX)
 		-- A: source register 1
 		-- D: jump offset (-32768..32767; 1 means "next instruction" aka "don't jump")
 		-- AUX: constant value (for boolean) in low bit, NOT flag (that flips comparison result) in high bit
-		{ ["name"] = "JUMPXEQKNIL", ["type"] = "iAD", ["aux"] = true },
-		{ ["name"] = "JUMPXEQKB", ["type"] = "iAD", ["aux"] = true },
+		{ ["name"] = "JUMPXEQKNIL", ["type"] = "AsD", ["aux"] = true },
+		{ ["name"] = "JUMPXEQKB", ["type"] = "AsD", ["aux"] = true },
 
 		-- JUMPXEQKN, JUMPXEQKS: jumps to target offset if the comparison with constant is true (or false, see AUX)
 		-- A: source register 1
 		-- D: jump offset (-32768..32767; 1 means "next instruction" aka "don't jump")
 		-- AUX: constant table index in low 24 bits, NOT flag (that flips comparison result) in high bit
-		{ ["name"] = "JUMPXEQKN", ["type"] = "iAD", ["aux"] = true },
-		{ ["name"] = "JUMPXEQKS", ["type"] = "iAD", ["aux"] = true },
+		{ ["name"] = "JUMPXEQKN", ["type"] = "AsD", ["aux"] = true },
+		{ ["name"] = "JUMPXEQKS", ["type"] = "AsD", ["aux"] = true },
 
 		-- IDIV: compute floor division between two source registers and put the result into target register
 		-- A: target register
 		-- B: source register 1
 		-- C: source register 2
-		{ ["name"] = "IDIV", ["type"] = "iABC" },
+		{ ["name"] = "IDIV", ["type"] = "ABC" },
 
 		-- IDIVK compute floor division between the source register and a constant and put the result into target register
 		-- A: target register
 		-- B: source register
 		-- C: constant table index (0..255)
-		{ ["name"] = "IDIVK", ["type"] = "iABC" },
+		{ ["name"] = "IDIVK", ["type"] = "ABC" },
 
 		-- Enum entry for number of opcodes, not a valid opcode by itself!
 		{ ["name"] = "_COUNT", ["type"] = "none" }
@@ -414,7 +414,7 @@ local Luau = {
 
 		LBC_TYPE_TAGGED_USERDATA_BASE = 64,
 		LBC_TYPE_TAGGED_USERDATA_END = 64 + 32,
-		
+
 		LBC_TYPE_OPTIONAL_BIT = bit32.lshift(1, 7), -- 128
 
 		LBC_TYPE_INVALID = 256
@@ -542,7 +542,20 @@ local Luau = {
 		LBF_BUFFER_READF32 = 74,
 		LBF_BUFFER_WRITEF32 = 75,
 		LBF_BUFFER_READF64 = 76,
-		LBF_BUFFER_WRITEF64 = 77
+		LBF_BUFFER_WRITEF64 = 77,
+
+		-- vector.
+		LBF_VECTOR_MAGNITUDE = 78,
+		LBF_VECTOR_NORMALIZE = 79,
+		LBF_VECTOR_CROSS = 80,
+		LBF_VECTOR_DOT = 81,
+		LBF_VECTOR_FLOOR = 82,
+		LBF_VECTOR_CEIL = 83,
+		LBF_VECTOR_ABS = 84,
+		LBF_VECTOR_SIGN = 85,
+		LBF_VECTOR_CLAMP = 86,
+		LBF_VECTOR_MIN = 87,
+		LBF_VECTOR_MAX = 88
 	},
 	-- Proto flag bitmask, stored in Proto::flags
 	ProtoFlag = {
@@ -613,9 +626,9 @@ function Luau:GetBaseTypeString(type, checkOptional)
 	elseif tag == LuauBytecodeType.LBC_TYPE_THREAD then
 		result = "thread"
 	elseif tag == LuauBytecodeType.LBC_TYPE_USERDATA then
-		result = "userdata" -- most likely some class (or Instance)
+		result = "userdata" -- might be Instance
 	elseif tag == LuauBytecodeType.LBC_TYPE_VECTOR then
-		result = "Vector3" -- "vector"
+		result = "Vector3"
 	elseif tag == LuauBytecodeType.LBC_TYPE_BUFFER then
 		result = "buffer"
 	elseif tag == LuauBytecodeType.LBC_TYPE_ANY then
@@ -788,7 +801,7 @@ function Luau:GetBuiltinInfo(bfid)
 			return "buffer.readu16"
 		elseif bfid == LuauBuiltinFunction.LBF_BUFFER_WRITEU16 then
 			return "buffer.writeu16"
-		elseif bfid == LuauBuiltinFunction.LBF_BUFFER_READI32 or bfid == LuauBuiltinFunction.LBF_BUFFER_READU32 then
+		elseif bfid == LuauBuiltinFunction.LBF_BUFFER_READI32 then
 			return "buffer.readi32"
 		elseif bfid == LuauBuiltinFunction.LBF_BUFFER_READU32 then
 			return "buffer.readu32"
@@ -802,6 +815,30 @@ function Luau:GetBuiltinInfo(bfid)
 			return "buffer.readf64"
 		elseif bfid == LuauBuiltinFunction.LBF_BUFFER_WRITEF64 then
 			return "buffer.writef64"
+		end
+
+		if bfid == LuauBuiltinFunction.LBF_VECTOR_MAGNITUDE then
+			return "vector.magnitude"
+		elseif bfid == LuauBuiltinFunction.LBF_VECTOR_NORMALIZE then
+			return "vector.normalize"
+		elseif bfid == LuauBuiltinFunction.LBF_VECTOR_CROSS then
+			return "vector.cross"
+		elseif bfid == LuauBuiltinFunction.LBF_VECTOR_DOT then
+			return "vector.dot"
+		elseif bfid == LuauBuiltinFunction.LBF_VECTOR_FLOOR then
+			return "vector.floor"
+		elseif bfid == LuauBuiltinFunction.LBF_VECTOR_CEIL then
+			return "vector.ceil"
+		elseif bfid == LuauBuiltinFunction.LBF_VECTOR_ABS then
+			return "vector.abs"
+		elseif bfid == LuauBuiltinFunction.LBF_VECTOR_SIGN then
+			return "vector.sign"
+		elseif bfid == LuauBuiltinFunction.LBF_VECTOR_CLAMP then
+			return "vector.clamp"
+		elseif bfid == LuauBuiltinFunction.LBF_VECTOR_MIN then
+			return "vector.min"
+		elseif bfid == LuauBuiltinFunction.LBF_VECTOR_MAX then
+			return "vector.max"
 		end
 	end
 end
