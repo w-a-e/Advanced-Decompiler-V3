@@ -18,6 +18,11 @@ function Reader.new(bytecode)
 		cursor += 1
 		return result
 	end
+	function self:nextSignedByte()
+		local result = buffer.readi8(stream, cursor)
+		cursor += 1
+		return result
+	end
 	function self:nextBytes(count)
 		local result = {}
 		for i = 1, count do
