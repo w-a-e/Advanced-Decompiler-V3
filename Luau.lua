@@ -864,4 +864,4 @@ local function prepare(t)
 	return t
 end
 
-return prepare(Luau)
+return prepare(Luau), Luau -- add an option to decompile vanilla
