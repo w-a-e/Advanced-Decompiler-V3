@@ -49,7 +49,7 @@ end
 local Implementations = LoadFromUrl("Implementations")
 local Reader = LoadFromUrl("Reader")
 local Strings = LoadFromUrl("Strings")
-local Luau = LoadFromUrl("Luau")
+local Luau, VanillaLuau = LoadFromUrl("Luau")
 
 local function LoadFlag(name)
 	local success, result = pcall(function()
