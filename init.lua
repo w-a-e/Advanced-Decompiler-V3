@@ -15,7 +15,8 @@ local DEFAULT_OPTIONS = {
 	ShowTrivialOperations = false,
 	UseTypeInfo = true, -- allow adding types to function parameters (ex. p1: string, p2: number)
 	ListUsedGlobals = true, -- list all (non-Roblox!!) globals used in the script as a top comment
-	ReturnElapsedTime = false -- return time it took to finish processing the bytecode
+	ReturnElapsedTime = false, -- return time it took to finish processing the bytecode
+	Vanilla = false -- allow vanilla luau decompilation (without op encoding)
 }
 
 local function LoadFromUrl(x)
@@ -49,7 +50,7 @@ end
 local Implementations = LoadFromUrl("Implementations")
 local Reader = LoadFromUrl("Reader")
 local Strings = LoadFromUrl("Strings")
-local Luau = LoadFromUrl("Luau")
+local Luau, LuauVanilla = LoadFromUrl("Luau")
 
 local function LoadFlag(name)
 	local success, result = pcall(function()
@@ -62,14 +63,23 @@ local function LoadFlag(name)
 
 	return true -- assume the test ended and it was successful
 end
+
+local function GetLuauData(index)
+	if DEFAULT_OPTIONS.Vanilla == true then
+		return LuauVanilla[index]
+	else
+		return Luau[index]
+	end
+end
+
 local LuauCompileUserdataInfo = LoadFlag("LuauCompileUserdataInfo")
 
-local LuauOpCode = Luau.OpCode
-local LuauBytecodeTag = Luau.BytecodeTag
-local LuauBytecodeType = Luau.BytecodeType
-local LuauCaptureType = Luau.CaptureType
-local LuauBuiltinFunction = Luau.BuiltinFunction
-local LuauProtoFlag = Luau.ProtoFlag
+local LuauOpCode = GetLuauData("OpCode")
+local LuauBytecodeTag = GetLuauData("BytecodeTag")
+local LuauBytecodeType = GetLuauData("BytecodeType")
+local LuauCaptureType = GetLuauData("CaptureType")
+local LuauBuiltinFunction = GetLuauData("BuiltinFunction")
+local LuauProtoFlag = GetLuauData("ProtoFlag")
 
 local toBoolean = Implementations.toBoolean
 local toEscapedString = Implementations.toEscapedString
